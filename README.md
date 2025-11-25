@@ -15,6 +15,7 @@ Required rt.jar and bdjstack.jar are under PS4's /system_ex/app/NPXS20113
 * **[john-tornblom](https://github.com/john-tornblom)** — [BDJ-SDK](https://github.com/john-tornblom/bdj-sdk) and [ps4-payload-sdk](https://github.com/ps4-payload-dev/sdk) used for compilation.
 * **[shahrilnet, null\_ptr](https://github.com/shahrilnet/remote_lua_loader)** — Lua Lapse implementation, without which BD-J Lapse was impossible.
 * **[GoldHEN](https://github.com/GoldHEN)** - henloader_lp
+* **[rezbouchabou]([https://github.com/GoldHEN](https://github.com/rezbouchabou/))** - Henloader Logo
 
 ---
 
