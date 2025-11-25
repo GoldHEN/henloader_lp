@@ -1,5 +1,5 @@
 .vs/
-HenLoader/thirdparty/OpenJDK8U-jdk_aarch64_linux_hotspot_8u462b08.tar.gz
-HenLoader/thirdparty/OpenJDK8U-jdk_x64_linux_hotspot_8u462b08.tar.gz
-HenLoader/thirdparty/OpenJDK11U-jdk_aarch64_linux_hotspot_11.0.28_6.tar.gz
-HenLoader/thirdparty/OpenJDK11U-jdk_x64_linux_hotspot_11.0.28_6.tar.gz
+build/
+HenLoader/thirdparty/OpenJDK*.tar.gz
+HenLoader/thirdparty/topsecret/rt.jar
+HenLoader/thirdparty/topsecret/bdjstack.jar
