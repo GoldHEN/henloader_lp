@@ -4,7 +4,7 @@
 all: build/henloader.iso
 
 # Known-good JDK packages for Linux
-# Source: https://github.com/adoptium/temurin8-binaries/releases
+# Source: https://github.com/adoptium/temurin8-binaries/releases/tag/jdk8u462-b08
 
 ARCH := $(shell uname -m)
 ifeq ($(ARCH),aarch64)
