@@ -10,7 +10,7 @@
 			<di:tableOfContents>
 				<di:titleName titleNumber="1">HenLoader LP</di:titleName>
 			</di:tableOfContents>
-			<di:thumbnail href="logo.jpg"/>
+			<di:thumbnail href="logo.png"/>
 		</di:description>
 		<di:language>eng</di:language>
 	</di:discinfo>

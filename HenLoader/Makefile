@@ -80,7 +80,7 @@ BD_FONT   := $(DISC)/BDMV/AUXDATA/00000.otf
 BD_FNTIDX := $(DISC)/BDMV/AUXDATA/dvb.fontindex
 BD_HEN    := $(DISC)/BDMV/AUXDATA/aiofix_USBpayload.elf
 BD_META   := $(DISC)/BDMV/META/DL/bdmt_eng.xml
-BD_BANNER := $(DISC)/BDMV/META/DL/logo.jpg
+BD_BANNER := $(DISC)/BDMV/META/DL/logo.png
 BD_INDEX  := $(DISC)/BDMV/index.bdmv
 BD_MVOBJ  := $(DISC)/BDMV/MovieObject.bdmv
 BD_ID     := $(DISC)/CERTIFICATE/id.bdmv
@@ -113,7 +113,7 @@ $(BD_HEN): bd-metadata/aiofix_USBpayload.elf $(DISC)
 # Metadata about the disc, including user-visible name and banner
 $(BD_META): bd-metadata/bdmt_eng.xml $(DISC)
 	cp $< $@
-$(BD_BANNER): bd-metadata/logo.jpg $(DISC)
+$(BD_BANNER): bd-metadata/logo.png $(DISC)
 	cp $< $@
 
 # Blu-ray index that points the player towards MovieObject
