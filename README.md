@@ -19,6 +19,6 @@ If your updating firmware to 12.5x and have used BDJ or Lua before on lower firm
 
 GoldHEN embedded on the disc will always be used if using GoldHEN for the first time so please use a USB to update GoldHEN when there is a new release of the payload, the payload is copied to /data partition on your PS4 and will be used from then on
 
-HenLoader can be used witn any other hen you prefer, just replace the payload.bin on the usb.
+HenLoader can be used with any other hen you prefer, just replace the payload.bin on the usb.
 
 Please report any bugs you find to our Discord server https://discord.com/invite/pR5NTEVBGt
