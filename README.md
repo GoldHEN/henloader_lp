@@ -1,6 +1,6 @@
 # BD-JB-1252
 
-![Project Logo](bd-metadata/logo.png)
+![Project Logo](HenLoader/bd-metadata/logo.png)
 
 BD-JB for up to PS4 12.52
 
