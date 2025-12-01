@@ -1,24 +1,71 @@
-### Credits
+# BD-JB-1252
 
-* [**TheFlow**](https://github.com/theofficialflow) — [BD-JB](https://github.com/TheOfficialFloW/bd-jb) and [__sys_netcontrol](https://gist.github.com/TheOfficialFloW/7174351201b5260d7780780f4059bebf) (Poopsploit) exploits.
-* **abc** — Lapse kernel exploit and AIO fix.
-* [**Gezine**](https://github.com/gezine) — [BD-JB-1250](https://github.com/Gezine/BD-JB-1250):  Lapse and AIO fix PS4 implementation.
-* [**15432**](https://github.com/15432) — [HenLoader_LP](https://github.com/GoldHEN/henloader_lp): Poopsploit PS4 implementation.
-* [**Kimari**](https://github.com/kimariin) — [BlueLoader](https://github.com/kimariin/BlueLoader): BDJ build environment.
-* [**sleirsgoevy**](https://github.com/sleirsgoevy) — [bdj-doom](https://github.com/sleirsgoevy/bdj-doom): Java console.
-* [**John Törnblom**](https://github.com/john-tornblom) — [ps4-payload-sdk](https://github.com/ps4-payload-dev/sdk): AIO fix build environment.
-* [**SiSTRo**](https://github.com/SiSTR0) — [GoldHEN](https://github.com/GoldHEN): [GoldHEN v2.4b18.7](https://ko-fi.com/s/5d29f9e29c).
+![Project Logo](HenLoader/bd-metadata/logo.png)
 
-### Note
+BD-JB for up to PS4 12.52
 
-This README is still WIP.
+---
 
-Any Pull Request is welcome, but please note that it may take some time for us to review it. Thanks for your patience.
+## Overview
 
-If your updating firmware to 12.5x and have used BDJ or Lua before on lower firmwares you must have the latest GoldHEN on a fat32 or exfat usb, Partiton type must be MBR, On large USBs you will probably have to format with a tool like Rufus for this and GoldHEN needs to be renamed to payload.bin
+This project provides tools and resources for building BD-J ISO images and executing native code on PS4 systems up to firmware version 12.52. It leverages the BDJ-SDK and ps4-payload-sdk for compilation.
 
-GoldHEN embedded on the disc will always be used if using GoldHEN for the first time so please use a USB to update GoldHEN when there is a new release of the payload, the payload is copied to /data partition on your PS4 and will be used from then on
+---
 
-HenLoader can be used witn any other hen you prefer, just replace the payload.bin on the usb.
+## Prerequisites
 
-Please report any bugs you find to our Discord server https://discord.com/invite/pR5NTEVBGt
+Before proceeding, ensure you have the following installed on your system:
+
+- **Build tools**: `build-essential`, `libbsd-dev`, `git`, `pkg-config`
+- **Java Development Kits**: OpenJDK 8 and OpenJDK 11
+
+---
+
+## Building Steps Debian/WSL
+
+### 1. Get the BDJ-SDK
+
+Clone and set up the BDJ-SDK repository:
+
+```console
+sudo apt-get install build-essential libbsd-dev git pkg-config openjdk-8-jdk-headless openjdk-11-jdk-headless
+git clone --recurse-submodules https://github.com/john-tornblom/bdj-sdk
+ln -s /usr/lib/jvm/java-8-openjdk-amd64 bdj-sdk/host/jdk8
+ln -s /usr/lib/jvm/java-11-openjdk-amd64 bdj-sdk/host/jdk11
+make -C bdj-sdk/host/src/makefs_termux
+make -C bdj-sdk/host/src/makefs_termux install DESTDIR=$PWD/bdj-sdk/host
+make -C bdj-sdk/target
+```
+
+### 2. Download and Install the ps4-payload-sdk
+
+Clone the ps4-payload-sdk repository and install its dependencies:
+
+```console
+sudo apt-get update && sudo apt-get upgrade # optional
+sudo apt-get install bash clang-18 lld-18 # required
+sudo apt-get install socat cmake meson pkg-config # optional
+```
+
+### 3. Download DefKorns Henloader
+
+Clone the ps4-payload-sdk repository:
+
+```console
+defkorns@localhost:~$ git clone -b clean-up --single-branch https://github.com/DefKorns/henloader_lp.git
+```
+
+### 4. Get bdjstack.jar and rt.jar
+
+Copy `bdjstack.jar` and `rt.jar` from your PS4 system located at `/system_ex/app/NPXS20113` to the appropriate directories in your BDJ-SDK setup (`target/lib`).
+
+---
+
+## Credits
+
+- **[TheFlow](https://github.com/theofficialflow)** — BD-JB documentation & native code execution sources.
+- **[hammer-83](https://github.com/hammer-83)** — PS5 Remote JAR Loader reference.
+- **[john-tornblom](https://github.com/john-tornblom)** — [BDJ-SDK](https://github.com/john-tornblom/bdj-sdk) and [ps4-payload-sdk](https://github.com/ps4-payload-dev/sdk) used for compilation.
+- **[shahrilnet, null_ptr](https://github.com/shahrilnet/remote_lua_loader)** — Lua Lapse implementation, without which BD-J Lapse was impossible.
+- **[GoldHEN](https://github.com/GoldHEN)** - henloader_lp
+- **[Gezine](https://github.com/gezine/)** - BD-JB-1250

