@@ -1,5 +1,1 @@
 .vs/
-build/
-HenLoader/thirdparty/OpenJDK*.tar.gz
-HenLoader/thirdparty/topsecret/rt.jar
-HenLoader/thirdparty/topsecret/bdjstack.jar
