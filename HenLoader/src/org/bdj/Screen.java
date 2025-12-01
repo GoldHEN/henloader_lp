@@ -15,18 +15,17 @@ public class Screen extends Container
     public Screen(ArrayList messages)
     {
         this.messages = messages;
-        font = new Font(null, Font.PLAIN, 36);
+        font = new Font(null, Font.PLAIN, 20);
     }
     public void paint(Graphics g)
     {
-        g.setColor(new Color(100, 110, 160));
+        g.setColor(new Color(9, 35, 64));
         g.fillRect(0, 0, getWidth(), getHeight());
         g.setFont(font);
-        g.setColor(new Color(255, 255, 255));
+        g.setColor(Color.WHITE);
         for(int i = 0; i < messages.size(); i++)
         {
             String message = (String)messages.get(i);
-            int message_width = g.getFontMetrics().stringWidth(message);
             g.drawString(message, 0, top + (i*40));
         }
     }
