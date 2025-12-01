@@ -55,7 +55,7 @@ public class InitXlet implements Xlet {
         scene = HSceneFactory.getInstance().getDefaultHScene();
         try {
             gui = new Screen(messages);
-            gui.setSize(Constants.SCREEN_WIDTH, Constants.SCREEN_HEIGHT); // BD screen size
+            gui.setSize(1920, 1080); // BD screen size
             scene.add(gui, BorderLayout.CENTER);
             (new Thread() {
                 public void run() {
