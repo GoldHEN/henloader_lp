@@ -21,20 +21,20 @@ Before proceeding, ensure you have the following installed on your system:
 
 ---
 
-## Installation Steps
+## Building Steps Debian/WSL
 
 ### 1. Get the BDJ-SDK
 
 Clone and set up the BDJ-SDK repository:
 
 ```console
-john@localhost:~$ sudo apt-get install build-essential libbsd-dev git pkg-config openjdk-8-jdk-headless openjdk-11-jdk-headless
-john@localhost:~$ git clone --recurse-submodules https://github.com/john-tornblom/bdj-sdk
-john@localhost:~$ ln -s /usr/lib/jvm/java-8-openjdk-amd64 bdj-sdk/host/jdk8
-john@localhost:~$ ln -s /usr/lib/jvm/java-11-openjdk-amd64 bdj-sdk/host/jdk11
-john@localhost:~$ make -C bdj-sdk/host/src/makefs_termux
-john@localhost:~$ make -C bdj-sdk/host/src/makefs_termux install DESTDIR=$PWD/bdj-sdk/host
-john@localhost:~$ make -C bdj-sdk/target
+sudo apt-get install build-essential libbsd-dev git pkg-config openjdk-8-jdk-headless openjdk-11-jdk-headless
+git clone --recurse-submodules https://github.com/john-tornblom/bdj-sdk
+ln -s /usr/lib/jvm/java-8-openjdk-amd64 bdj-sdk/host/jdk8
+ln -s /usr/lib/jvm/java-11-openjdk-amd64 bdj-sdk/host/jdk11
+make -C bdj-sdk/host/src/makefs_termux
+make -C bdj-sdk/host/src/makefs_termux install DESTDIR=$PWD/bdj-sdk/host
+make -C bdj-sdk/target
 ```
 
 ### 2. Download and Install the ps4-payload-sdk
@@ -42,9 +42,9 @@ john@localhost:~$ make -C bdj-sdk/target
 Clone the ps4-payload-sdk repository and install its dependencies:
 
 ```console
-john@localhost:ps4-payload-dev/sdk$ sudo apt-get update && sudo apt-get upgrade # optional
-john@localhost:ps4-payload-dev/sdk$ sudo apt-get install bash clang-18 lld-18 # required
-john@localhost:ps4-payload-dev/sdk$ sudo apt-get install socat cmake meson pkg-config # optional
+sudo apt-get update && sudo apt-get upgrade # optional
+sudo apt-get install bash clang-18 lld-18 # required
+sudo apt-get install socat cmake meson pkg-config # optional
 ```
 
 ### 3. Download DefKorns Henloader
@@ -57,7 +57,7 @@ defkorns@localhost:~$ git clone -b clean-up --single-branch https://github.com/D
 
 ### 4. Get bdjstack.jar and rt.jar
 
-Copy `bdjstack.jar` and `rt.jar` from your PS4 system located at `/system_ex/app/NPXS20113` to the appropriate directories in your BDJ-SDK setup (target\lib).
+Copy `bdjstack.jar` and `rt.jar` from your PS4 system located at `/system_ex/app/NPXS20113` to the appropriate directories in your BDJ-SDK setup (`target/lib`).
 
 ---
 
@@ -68,4 +68,4 @@ Copy `bdjstack.jar` and `rt.jar` from your PS4 system located at `/system_ex/app
 - **[john-tornblom](https://github.com/john-tornblom)** — [BDJ-SDK](https://github.com/john-tornblom/bdj-sdk) and [ps4-payload-sdk](https://github.com/ps4-payload-dev/sdk) used for compilation.
 - **[shahrilnet, null_ptr](https://github.com/shahrilnet/remote_lua_loader)** — Lua Lapse implementation, without which BD-J Lapse was impossible.
 - **[GoldHEN](https://github.com/GoldHEN)** - henloader_lp
-- **[rezbouchabou](https://github.com/rezbouchabou/)** - Henloader Logo
+- **[Gezine](https://github.com/gezine/)** - BD-JB-1250

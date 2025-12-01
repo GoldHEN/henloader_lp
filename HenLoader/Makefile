@@ -1,10 +1,10 @@
 # Makefile cheat sheet:
 # https://www.gnu.org/software/make/manual/html_node/Automatic-Variables.html
 
-DISC_LABEL		:= HenLoaderNext
+DISC_LABEL		:= HenLoader
 
 MAKEFILE_DIR 	:= $(dir $(realpath $(lastword $(MAKEFILE_LIST))))
-BDJSDK_HOME  	?= $(MAKEFILE_DIR)/../../../
+BDJSDK_HOME 	?= $(MAKEFILE_DIR)/../../bdj-sdk
 BDSIGNER     	:= $(BDJSDK_HOME)/host/bin/bdsigner
 MAKEFS       	:= $(BDJSDK_HOME)/host/bin/makefs
 JAVA8_HOME    	?= $(BDJSDK_HOME)/host/jdk8
