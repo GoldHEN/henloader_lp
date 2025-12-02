@@ -69,3 +69,4 @@ Copy `bdjstack.jar` and `rt.jar` from your PS4 system located at `/system_ex/app
 - **[shahrilnet, null_ptr](https://github.com/shahrilnet/remote_lua_loader)** — Lua Lapse implementation, without which BD-J Lapse was impossible.
 - **[GoldHEN](https://github.com/GoldHEN)** - henloader_lp
 - **[Gezine](https://github.com/gezine/)** - BD-JB-1250
+- **[rezbouchabou](https://github.com/rezbouchabou/)** - InitialHenloader Logo
