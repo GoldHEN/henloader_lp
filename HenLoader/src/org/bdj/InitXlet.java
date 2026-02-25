@@ -85,7 +85,7 @@ public class InitXlet implements Xlet, UserEventListener
                         //CRunTime.init(is);
     
                         console.println("Hen Loader LP v1.1, based on:");
-                        console.println("- GoldHEN 2.4b18.7 by SiSTR0");
+                        console.println("- GoldHEN 2.4b18.9 by SiSTR0");
                         console.println("- poops code by theflow0");
                         console.println("- lapse code by Gezine");
                         console.println("- BDJ build environment by kimariin");
